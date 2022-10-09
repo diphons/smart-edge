@@ -3,13 +3,21 @@ plugins {
 }
 
 android {
+    def getDate = new Date().format('yyyyMMdd').toInteger()
+    def getClock = new Date().format('HHmmss').toString()
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            def fileName = "SmartEdge" + "_${defaultConfig.versionName}_${defaultConfig.versionCode}" + getClock + "_"+ variant.name + ".apk"
+            outputFileName = fileName
+        }
+    }
     compileSdk 32
 
     defaultConfig {
         applicationId "com.abh80.smartedge"
         minSdk 26
         targetSdk 32
-        versionCode 20100
+        versionCode getDate
         versionName "2.2.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -28,6 +36,15 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+        release_mini {
+            shrinkResources true
+            zipAlignEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            minifyEnabled true
+            debuggable false
+            jniDebuggable = false
             signingConfig signingConfigs.release
         }
     }
