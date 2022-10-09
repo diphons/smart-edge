@@ -34,14 +34,16 @@ android {
 
     buildTypes {
         release {
+            buildConfigField 'String', 'GOOGLE_VERIFICATION_API_KEY', '"GOOGLE_VERIFICATION_API_KEY"'
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
         }
         release_mini {
+            buildConfigField 'String', 'GOOGLE_VERIFICATION_API_KEY', '"GOOGLE_VERIFICATION_API_KEY"'
             shrinkResources true
             zipAlignEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             minifyEnabled true
             debuggable false
             jniDebuggable = false
