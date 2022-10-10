@@ -6,6 +6,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
+import android.app.KeyguardManager;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -26,6 +27,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.view.WindowManager;
 import android.view.WindowMetrics;
 import android.view.accessibility.AccessibilityEvent;
@@ -58,8 +60,28 @@ public class OverlayService extends AccessibilityService {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(getPackageName() + ".OVERLAY_LAYOUT_CHANGE")) {
-                sharedPreferences = intent.getExtras().getBundle("settings");
+            if (intent.getAction().equals(Intent.ACTION_USER_PRESENT)) {
+                if (sharedPreferences.getBoolean("enable_on_lockscreen", false)) return;
+
+                if (mView != null && mWindowManager != null) {
+                    try {
+                        mWindowManager.removeView(mView);
+                    } catch (Exception ignored) {
+                    }
+                    mWindowManager.addView(mView, mView.getLayoutParams());
+                }
+            } else if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
+                if (sharedPreferences.getBoolean("enable_on_lockscreen", false)) return;
+                if (mView != null && mWindowManager != null) {
+                    mWindowManager.removeView(mView);
+                }
+            } else if (intent.getAction().equals(getPackageName() + ".OVERLAY_LAYOUT_CHANGE")) {
+                Bundle settings = intent.getExtras().getBundle("settings");
+                for (String s : settings.keySet()) {
+                    if (settings.get(s) instanceof Float) {
+                        sharedPreferences.putFloat(s, settings.getFloat(s));
+                    }
+                }
                 if (mView != null && mWindowManager != null) {
                     WindowManager.LayoutParams mParams = (WindowManager.LayoutParams) mView.getLayoutParams();
 
@@ -77,7 +99,12 @@ public class OverlayService extends AccessibilityService {
                     mWindowManager.updateViewLayout(mView, mParams);
                 }
             } else {
-                sharedPreferences = intent.getExtras().getBundle("settings");
+                Bundle settings = intent.getExtras().getBundle("settings");
+                for (String s : settings.keySet()) {
+                    if (settings.get(s) instanceof Boolean) {
+                        sharedPreferences.putBoolean(s, settings.getBoolean(s));
+                    }
+                }
                 plugins.forEach(BasePlugin::onDestroy);
                 queued.clear();
                 if (mView != null && mWindowManager != null) {
@@ -87,7 +114,7 @@ public class OverlayService extends AccessibilityService {
             }
         }
     };
-    private int x, y;
+    public int x, y;
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent accessibilityEvent) {
@@ -106,6 +133,13 @@ public class OverlayService extends AccessibilityService {
                 binded_plugin.onClick();
             } else
                 binded_plugin.onExpand();
+        } else {
+            animateOverlay(minHeight + dpToInt(20), minWidth + dpToInt(20), false, new CallBack(), new CallBack() {
+                @Override
+                public void onFinish() {
+                    animateOverlay(minHeight, minWidth, false, new CallBack(), new CallBack(), false);
+                }
+            }, false);
         }
     }
 
@@ -147,13 +181,10 @@ public class OverlayService extends AccessibilityService {
             }
             Runtime.getRuntime().exit(0);
         });
-        AccessibilityServiceInfo info = new AccessibilityServiceInfo();
-        info.eventTypes = AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED;
-        info.notificationTimeout = 100;
-        info.feedbackType = AccessibilityEvent.TYPES_ALL_MASK;
-        setServiceInfo(info);
         IntentFilter filter = new IntentFilter(getPackageName() + ".SETTINGS_CHANGED");
         filter.addAction(getPackageName() + ".OVERLAY_LAYOUT_CHANGE");
+        filter.addAction(Intent.ACTION_USER_PRESENT);
+        filter.addAction(Intent.ACTION_SCREEN_OFF);
         registerReceiver(broadcastReceiver, filter);
 
         SharedPreferences sharedPreferences2 = getSharedPreferences(getPackageName(), MODE_PRIVATE);
@@ -188,9 +219,10 @@ public class OverlayService extends AccessibilityService {
     private void init() {
 
         binded_plugin = null;
-        int flags = WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH | WindowManager.LayoutParams.FLAG_FULLSCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        int flags = WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH | WindowManager.LayoutParams.FLAG_FULLSCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
 
         flags |= WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
+
 
         if (minWidth == 0) {
             minWidth = dpToInt((int) sharedPreferences.getFloat("overlay_w", 83));
@@ -270,6 +302,7 @@ public class OverlayService extends AccessibilityService {
         plugins.forEach(x -> {
             if (sharedPreferences.getBoolean(x.getID() + "_enabled", true)) x.onCreate(this);
         });
+        binded_plugin = null;
         bindPlugin();
     }
 
@@ -295,16 +328,16 @@ public class OverlayService extends AccessibilityService {
 
     private int last_min_size = 200;
 
-    public void animateOverlay(int h, int w, boolean expanded, CallBack callBackStart, CallBack callBackEnd) {
+    public void animateOverlay(int h, int w, boolean expanded, CallBack callBackStart, CallBack callBackEnd, boolean expandedPrev) {
         int init_w = w;
         if (!expanded && w == ViewGroup.LayoutParams.WRAP_CONTENT) {
             w = last_min_size;
             if (w < minWidth) w = minWidth;
         }
+        WindowManager.LayoutParams params = (WindowManager.LayoutParams) mView.getLayoutParams();
         if (expanded) {
-            last_min_size = mView.getMeasuredWidth();
+            if (!expandedPrev) last_min_size = mView.getMeasuredWidth();
         }
-        ViewGroup.LayoutParams params = mView.getLayoutParams();
         ValueAnimator height_anim = ValueAnimator.ofInt(params.height, h);
         height_anim.setDuration(800);
         height_anim.addUpdateListener(valueAnimator -> {
@@ -322,6 +355,21 @@ public class OverlayService extends AccessibilityService {
             public void onAnimationStart(Animator animation) {
                 super.onAnimationStart(animation);
                 callBackStart.onFinish();
+                if (expanded && params.x != 0) {
+                    ValueAnimator v = ValueAnimator.ofInt(params.x, 0).setDuration(500);
+                    v.addUpdateListener(valueAnimator -> {
+                        params.x = (int) valueAnimator.getAnimatedValue();
+                    });
+                    v.start();
+                }
+                if (!expanded && x != params.x) {
+                    ValueAnimator v = ValueAnimator.ofInt(params.x, x).setDuration(500);
+                    v.addUpdateListener(valueAnimator -> {
+                        params.x = (int) valueAnimator.getAnimatedValue();
+                    });
+                    v.start();
+                }
+
             }
 
             @SuppressLint("UseCompatLoadingForDrawables")
@@ -331,8 +379,8 @@ public class OverlayService extends AccessibilityService {
                 callBackEnd.onFinish();
                 if (init_w == ViewGroup.LayoutParams.WRAP_CONTENT) {
                     params.width = ViewGroup.LayoutParams.WRAP_CONTENT;
-                    mWindowManager.updateViewLayout(mView, params);
                 }
+                mWindowManager.updateViewLayout(mView, params);
             }
         });
         if (w != 0) {
@@ -344,22 +392,24 @@ public class OverlayService extends AccessibilityService {
         height_anim.start();
     }
 
-    public void animateOverlay(int h, int w, boolean expanded, CallBack callBackStart, CallBack callBackEnd, CallBack onChange) {
+    public void animateOverlay(int h, int w, boolean expanded, CallBack callBackStart, CallBack callBackEnd, CallBack onChange, boolean expandedPrev) {
         int init_w = w;
         if (!expanded && w == ViewGroup.LayoutParams.WRAP_CONTENT) {
             w = last_min_size;
             if (w < minWidth) w = minWidth;
         }
+
+        WindowManager.LayoutParams params = (WindowManager.LayoutParams) mView.getLayoutParams();
         if (expanded) {
-            last_min_size = mView.getMeasuredWidth();
+            if (!expandedPrev) last_min_size = mView.getMeasuredWidth();
         }
-        ViewGroup.LayoutParams params = mView.getLayoutParams();
         ValueAnimator height_anim = ValueAnimator.ofInt(params.height, h);
         height_anim.setDuration(800);
         height_anim.addUpdateListener(valueAnimator -> {
             params.height = (int) valueAnimator.getAnimatedValue();
             mWindowManager.updateViewLayout(mView, params);
         });
+
         ValueAnimator width_anim = ValueAnimator.ofInt(mView.getMeasuredWidth(), w);
         width_anim.setDuration(800);
         width_anim.addUpdateListener(v2 -> {
@@ -372,6 +422,20 @@ public class OverlayService extends AccessibilityService {
             public void onAnimationStart(Animator animation) {
                 super.onAnimationStart(animation);
                 callBackStart.onFinish();
+                if (expanded && params.x != 0) {
+                    ValueAnimator v = ValueAnimator.ofInt(params.x, 0).setDuration(500);
+                    v.addUpdateListener(valueAnimator -> {
+                        params.x = (int) valueAnimator.getAnimatedValue();
+                    });
+                    v.start();
+                }
+                if (!expanded && x != params.x) {
+                    ValueAnimator v = ValueAnimator.ofInt(params.x, x).setDuration(500);
+                    v.addUpdateListener(valueAnimator -> {
+                        params.x = (int) valueAnimator.getAnimatedValue();
+                    });
+                    v.start();
+                }
             }
 
             @SuppressLint("UseCompatLoadingForDrawables")
@@ -379,10 +443,11 @@ public class OverlayService extends AccessibilityService {
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
                 callBackEnd.onFinish();
+
                 if (init_w == ViewGroup.LayoutParams.WRAP_CONTENT) {
                     params.width = ViewGroup.LayoutParams.WRAP_CONTENT;
-                    mWindowManager.updateViewLayout(mView, params);
                 }
+                mWindowManager.updateViewLayout(mView, params);
             }
         });
         if (w != 0) {
@@ -407,7 +472,7 @@ public class OverlayService extends AccessibilityService {
                 mView.getLayoutParams().width = minWidth;
                 mView.setLayoutParams(mView.getLayoutParams());
             }
-        });
+        }, false);
 
     }
 

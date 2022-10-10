@@ -325,7 +325,6 @@ public class MediaSessionPlugin extends BasePlugin {
         @Override
         public void onChange(float p) {
             float f;
-            int h = (ctx.minHeight - (ctx.minHeight / 4)) / 2;
             if (expanded) {
                 f = p;
             } else {
@@ -341,7 +340,7 @@ public class MediaSessionPlugin extends BasePlugin {
         if (expanded) return;
         expanded = true;
         DisplayMetrics metrics = ctx.metrics;
-        ctx.animateOverlay(ctx.dpToInt(210), metrics.widthPixels - ctx.dpToInt(15), expanded, OverLayCallBackStart, overLayCallBackEnd, onChange);
+        ctx.animateOverlay(ctx.dpToInt(210), metrics.widthPixels - ctx.dpToInt(15), expanded, OverLayCallBackStart, overLayCallBackEnd, onChange, false);
         animateChild(true, ctx.dpToInt(76));
 
     }
@@ -417,7 +416,7 @@ public class MediaSessionPlugin extends BasePlugin {
     public void onCollapse() {
         if (!expanded) return;
         expanded = false;
-        ctx.animateOverlay(ctx.minHeight, ViewGroup.LayoutParams.WRAP_CONTENT, expanded, OverLayCallBackStart, overLayCallBackEnd, onChange);
+        ctx.animateOverlay(ctx.minHeight, ViewGroup.LayoutParams.WRAP_CONTENT, expanded, OverLayCallBackStart, overLayCallBackEnd, onChange, false);
         animateChild(false, ctx.dpToInt(ctx.minHeight / 4));
     }
 
@@ -504,18 +503,20 @@ public class MediaSessionPlugin extends BasePlugin {
     private void animateChild(int h, CallBack callback) {
         View view1 = cover;
         View view2 = visualizer;
-        ViewGroup.LayoutParams params1 = view1.getLayoutParams();
-        ViewGroup.LayoutParams params2 = view2.getLayoutParams();
-        params1.height = h;
-        params2.height = h;
-        params1.width = h;
-        params2.width = h;
-        view1.setScaleY(0);
-        view1.setScaleX(0);
-        view2.setScaleX(0);
-        view2.setScaleY(0);
-        view1.setLayoutParams(params1);
-        view2.setLayoutParams(params2);
+        if (h != 0) {
+            ViewGroup.LayoutParams params1 = view1.getLayoutParams();
+            ViewGroup.LayoutParams params2 = view2.getLayoutParams();
+            params1.height = h;
+            params2.height = h;
+            params1.width = h;
+            params2.width = h;
+            view1.setScaleY(0);
+            view1.setScaleX(0);
+            view2.setScaleX(0);
+            view2.setScaleY(0);
+            view1.setLayoutParams(params1);
+            view2.setLayoutParams(params2);
+        }
         ValueAnimator valueAnimator = ValueAnimator.ofFloat(h != 0 ? 0 : 1, h != 0 ? 1 : 0);
         valueAnimator.addUpdateListener(l -> {
             float f = (float) l.getAnimatedValue();
