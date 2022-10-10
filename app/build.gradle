@@ -3,13 +3,21 @@ plugins {
 }
 
 android {
+    def getDate = new Date().format('yyyyMMdd').toInteger()
+    def getClock = new Date().format('HHmmss').toString()
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            def fileName = "SmartEdge" + "_${defaultConfig.versionName}_${defaultConfig.versionCode}" + getClock + "_"+ variant.name + ".apk"
+            outputFileName = fileName
+        }
+    }
     compileSdk 32
 
     defaultConfig {
         applicationId "com.abh80.smartedge"
         minSdk 26
         targetSdk 32
-        versionCode 20201
+        versionCode getDate
         versionName "2.2.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -26,8 +34,19 @@ android {
 
     buildTypes {
         release {
+            buildConfigField 'String', 'GOOGLE_VERIFICATION_API_KEY', '"GOOGLE_VERIFICATION_API_KEY"'
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+        release_mini {
+            buildConfigField 'String', 'GOOGLE_VERIFICATION_API_KEY', '"GOOGLE_VERIFICATION_API_KEY"'
+            shrinkResources true
+            zipAlignEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            minifyEnabled true
+            debuggable false
+            jniDebuggable = false
             signingConfig signingConfigs.release
         }
     }
