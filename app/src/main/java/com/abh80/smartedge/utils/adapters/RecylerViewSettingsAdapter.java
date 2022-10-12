@@ -1,4 +1,4 @@
-package com.abh80.smartedge.utils;
+package com.abh80.smartedge.utils.adapters;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -10,6 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.abh80.smartedge.R;
+import com.abh80.smartedge.utils.SettingStruct;
 import com.google.android.material.materialswitch.MaterialSwitch;
 
 import java.util.ArrayList;
@@ -49,13 +50,13 @@ public class RecylerViewSettingsAdapter extends RecyclerView.Adapter<RecylerView
         if (!holder.isItem) return;
         holder.textView.setText(settings.get(position).text);
         if (holder.ViewType == SettingStruct.TYPE_CUSTOM) {
-            holder.itemView.setOnClickListener(l -> settings.get(position).onClick());
+            holder.itemView.setOnClickListener(l -> settings.get(position).onClick(context));
         }
         if (holder.ViewType == SettingStruct.TYPE_TOGGLE) {
             holder.switchBtn.setOnCheckedChangeListener((compoundButton, b) -> {
-                settings.get(position).onCheckChanged(b);
+                settings.get(position).onCheckChanged(b, context);
             });
-            holder.switchBtn.setChecked(settings.get(position).onAttach());
+            holder.switchBtn.setChecked(settings.get(position).onAttach(context));
         }
     }
 

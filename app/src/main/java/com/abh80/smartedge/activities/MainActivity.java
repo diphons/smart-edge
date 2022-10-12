@@ -20,7 +20,6 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.Toast;
@@ -37,7 +36,7 @@ import com.abh80.smartedge.BuildConfig;
 import com.abh80.smartedge.R;
 import com.abh80.smartedge.plugins.ExportedPlugins;
 import com.abh80.smartedge.services.UpdaterService;
-import com.abh80.smartedge.utils.RecylerViewSettingsAdapter;
+import com.abh80.smartedge.utils.adapters.RecylerViewSettingsAdapter;
 import com.abh80.smartedge.utils.SettingStruct;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.color.MaterialColors;
@@ -77,51 +76,51 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         });
         settings.add(new SettingStruct("Manage Overlay Layout", "App Settings", SettingStruct.TYPE_CUSTOM) {
             @Override
-            public void onClick() {
+            public void onClick(Context c) {
                 startActivity(new Intent(MainActivity.this, OverlayLayoutSettingActivity.class));
             }
         });
         settings.add(new SettingStruct("Enable auto update checking", "App Settings", SettingStruct.TYPE_TOGGLE) {
             @Override
-            public boolean onAttach() {
+            public boolean onAttach(Context ctx) {
                 return sharedPreferences.getBoolean("update_enabled", true);
             }
 
             @Override
-            public void onCheckChanged(boolean checked) {
+            public void onCheckChanged(boolean checked, Context ctx) {
                 sharedPreferences.edit().putBoolean("update_enabled", checked).apply();
             }
         });
         settings.add(new SettingStruct("Invert long press and click functions", "App Settings", SettingStruct.TYPE_TOGGLE) {
             @Override
-            public void onCheckChanged(boolean checked) {
+            public void onCheckChanged(boolean checked, Context ctx) {
                 sharedPreferences.edit().putBoolean("invert_click", checked).apply();
             }
 
             @Override
-            public boolean onAttach() {
+            public boolean onAttach(Context ctx) {
                 return sharedPreferences.getBoolean("invert_click", false);
             }
         });
         settings.add(new SettingStruct("Enable on lockscreen", "App Settings", SettingStruct.TYPE_TOGGLE) {
             @Override
-            public boolean onAttach() {
+            public boolean onAttach(Context ctx) {
                 return sharedPreferences.getBoolean("enable_on_lockscreen", false);
             }
 
             @Override
-            public void onCheckChanged(boolean checked) {
+            public void onCheckChanged(boolean checked, Context ctx) {
                 sharedPreferences.edit().putBoolean("enable_on_lockscreen", checked).apply();
             }
         });
         settings.add(new SettingStruct("Copy crash logs to clipboard", "App Settings") {
             @Override
-            public boolean onAttach() {
+            public boolean onAttach(Context ctx) {
                 return sharedPreferences.getBoolean("clip_copy_enabled", true);
             }
 
             @Override
-            public void onCheckChanged(boolean checked) {
+            public void onCheckChanged(boolean checked, Context ctx) {
                 sharedPreferences.edit().putBoolean("clip_copy_enabled", checked).apply();
             }
         });
@@ -129,12 +128,12 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         ExportedPlugins.getPlugins().forEach(x -> {
             settings.add(new SettingStruct("Enable " + x.getName() + " Plugin", x.getName() + " Plugin Settings") {
                              @Override
-                             public boolean onAttach() {
+                             public boolean onAttach(Context ctx) {
                                  return sharedPreferences.getBoolean(x.getID() + "_enabled", true);
                              }
 
                              @Override
-                             public void onCheckChanged(boolean checked) {
+                             public void onCheckChanged(boolean checked, Context ctx) {
                                  sharedPreferences.edit().putBoolean(x.getID() + "_enabled", checked).apply();
                              }
                          }
@@ -254,20 +253,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             for (int i = 0; i < childCount; i++) {
                 View childAt = recyclerView.getChildAt(i);
                 RecylerViewSettingsAdapter.ViewHolder viewHolder = (RecylerViewSettingsAdapter.ViewHolder) recyclerView.getChildViewHolder(childAt);
-                int y = ((int) childAt.getY()) + childAt.getHeight();
-                boolean shallDrawDivider;
-                if (recyclerView.getChildAt(i + 1) != null)
-                    shallDrawDivider = ((RecylerViewSettingsAdapter.ViewHolder) recyclerView.getChildViewHolder(recyclerView.getChildAt(i + 1))).textView == null;
-                else
-                    shallDrawDivider = false;
-
-                Drawable mDivider = getBaseContext().getDrawable(com.google.android.material.R.drawable.abc_list_divider_material);
-                int mDividerHeight = mDivider.getIntrinsicHeight();
-
-                if (viewHolder.isItem && shallDrawDivider) {
-                    mDivider.setBounds(dpToInt(20), y, width - dpToInt(20), mDividerHeight + y);
-                    mDivider.draw(c);
-                }
                 int vo = recyclerView.getChildAdapterPosition(childAt);
                 if (!viewHolder.isItem) {
                     if (settings.size() >= vo + 2 && settings.get(vo + 1) != null) {
@@ -290,7 +275,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                         cornerBottom.setBounds(cornerBounds.left, v.getBottom(), cornerBounds.right, v.getBottom() + dpToInt(20));
                         cornerBottom.draw(c);
                     }
-
                 } else {
                     Rect bounds = new Rect(cornerBounds.left, (int) childAt.getY(), cornerBounds.right, childAt.getBottom());
                     c.drawRect(bounds, new Paint() {
