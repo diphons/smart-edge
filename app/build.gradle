@@ -18,12 +18,12 @@ android {
         minSdk 26
         targetSdk 32
         versionCode getDate
-        versionName "2.2.1"
+        versionName "2.2.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {
-        release {
+        github {
             def tmpFilePath = System.getProperty("user.home") + "/work/_temp/keystore/keystore.jks"
             storeFile = file(tmpFilePath)
             storePassword System.getenv("SIGNING_KEY_PASSWORD")
@@ -33,11 +33,26 @@ android {
     }
 
     buildTypes {
+        github {
+            buildConfigField 'String', 'GOOGLE_VERIFICATION_API_KEY', '"GOOGLE_VERIFICATION_API_KEY"'
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField "Boolean" , "AUTO_UPDATE" , "true"
+            signingConfig signingConfigs.github
+        }
         release {
             buildConfigField 'String', 'GOOGLE_VERIFICATION_API_KEY', '"GOOGLE_VERIFICATION_API_KEY"'
             minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField "Boolean" , "AUTO_UPDATE" , "false"
+            signingConfig signingConfigs.github
+        }
+        debug {
+            buildConfigField 'String', 'GOOGLE_VERIFICATION_API_KEY', '"GOOGLE_VERIFICATION_API_KEY"'
+            minifyEnabled false
+            buildConfigField "Boolean" , "AUTO_UPDATE" , "true"
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            signingConfig signingConfigs.github
         }
         release_mini {
             buildConfigField 'String', 'GOOGLE_VERIFICATION_API_KEY', '"GOOGLE_VERIFICATION_API_KEY"'
@@ -47,7 +62,7 @@ android {
             minifyEnabled true
             debuggable false
             jniDebuggable = false
-            signingConfig signingConfigs.release
+            signingConfig signingConfigs.github
         }
     }
     compileOptions {
