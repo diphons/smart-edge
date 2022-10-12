@@ -62,19 +62,12 @@ public class OverlayService extends AccessibilityService {
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(Intent.ACTION_USER_PRESENT)) {
                 if (sharedPreferences.getBoolean("enable_on_lockscreen", false)) return;
-
-                if (mView != null && mWindowManager != null) {
-                    try {
-                        mWindowManager.removeView(mView);
-                    } catch (Exception ignored) {
-                    }
-                    mWindowManager.addView(mView, mView.getLayoutParams());
+                if (mView != null) {
+                    mView.setVisibility(View.VISIBLE);
                 }
             } else if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
                 if (sharedPreferences.getBoolean("enable_on_lockscreen", false)) return;
-                if (mView != null && mWindowManager != null) {
-                    mWindowManager.removeView(mView);
-                }
+                mView.setVisibility(View.INVISIBLE);
             } else if (intent.getAction().equals(getPackageName() + ".OVERLAY_LAYOUT_CHANGE")) {
                 Bundle settings = intent.getExtras().getBundle("settings");
                 for (String s : settings.keySet()) {
@@ -152,7 +145,7 @@ public class OverlayService extends AccessibilityService {
         return START_STICKY;
     }
 
-    Bundle sharedPreferences = new Bundle();
+    public Bundle sharedPreferences = new Bundle();
 
     private WindowManager.LayoutParams getParams(int width, int height, int extFlags) {
         return new WindowManager.LayoutParams(
@@ -193,6 +186,8 @@ public class OverlayService extends AccessibilityService {
                 sharedPreferences.putBoolean(key, (boolean) value);
             else if (value instanceof Float) {
                 sharedPreferences.putFloat(key, (float) value);
+            } else if (value instanceof String) {
+                sharedPreferences.putString(key, (String) value);
             }
         });
         mWindowManager = (WindowManager) this.getSystemService(WINDOW_SERVICE);
