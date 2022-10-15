@@ -3,6 +3,14 @@ plugins {
 }
 
 android {
+    def getDate = new Date().format('yyyyMMdd').toInteger()
+    def getClock = new Date().format('HHmmss').toString()
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            def fileName = "SmartEdge" + "_${defaultConfig.versionName}_${defaultConfig.versionCode}" + getClock + "_"+ variant.name + ".apk"
+            outputFileName = fileName
+        }
+    }
     compileSdk 32
     sourceSets {
         github {
@@ -13,7 +21,7 @@ android {
         applicationId "com.abh80.smartedge"
         minSdk 26
         targetSdk 32
-        versionCode 20202
+        versionCode getDate
         versionName "2.2.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -31,19 +39,35 @@ android {
 
     buildTypes {
         github {
+            buildConfigField 'String', 'GOOGLE_VERIFICATION_API_KEY', '"GOOGLE_VERIFICATION_API_KEY"'
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             buildConfigField "Boolean", "AUTO_UPDATE", "true"
             signingConfig signingConfigs.github
         }
         release {
+            buildConfigField 'String', 'GOOGLE_VERIFICATION_API_KEY', '"GOOGLE_VERIFICATION_API_KEY"'
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             buildConfigField "Boolean", "AUTO_UPDATE", "false"
+            signingConfig signingConfigs.github
         }
         debug {
+            buildConfigField 'String', 'GOOGLE_VERIFICATION_API_KEY', '"GOOGLE_VERIFICATION_API_KEY"'
             minifyEnabled false
             buildConfigField "Boolean", "AUTO_UPDATE", "true"
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.github
+        }
+        release_mini {
+            buildConfigField 'String', 'GOOGLE_VERIFICATION_API_KEY', '"GOOGLE_VERIFICATION_API_KEY"'
+            shrinkResources true
+            zipAlignEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            minifyEnabled true
+            debuggable false
+            jniDebuggable = false
+            signingConfig signingConfigs.github
         }
     }
     compileOptions {
