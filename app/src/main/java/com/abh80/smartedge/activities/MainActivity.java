@@ -38,6 +38,7 @@ import com.abh80.smartedge.plugins.ExportedPlugins;
 import com.abh80.smartedge.services.UpdaterService;
 import com.abh80.smartedge.utils.adapters.RecylerViewSettingsAdapter;
 import com.abh80.smartedge.utils.SettingStruct;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.color.MaterialColors;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -80,17 +81,24 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
                 startActivity(new Intent(MainActivity.this, OverlayLayoutSettingActivity.class));
             }
         });
-        settings.add(new SettingStruct("Enable auto update checking", "App Settings", SettingStruct.TYPE_TOGGLE) {
+        settings.add(new SettingStruct("Overlay color", "App Settings", SettingStruct.TYPE_CUSTOM) {
             @Override
-            public boolean onAttach(Context ctx) {
-                return sharedPreferences.getBoolean("update_enabled", true);
-            }
-
-            @Override
-            public void onCheckChanged(boolean checked, Context ctx) {
-                sharedPreferences.edit().putBoolean("update_enabled", checked).apply();
+            public void onClick(Context ctx) {
+                startActivity(new Intent(MainActivity.this, AppearanceActivity.class));
             }
         });
+        if (BuildConfig.AUTO_UPDATE)
+            settings.add(new SettingStruct("Enable auto update checking", "App Settings", SettingStruct.TYPE_TOGGLE) {
+                @Override
+                public boolean onAttach(Context ctx) {
+                    return sharedPreferences.getBoolean("update_enabled", true);
+                }
+
+                @Override
+                public void onCheckChanged(boolean checked, Context ctx) {
+                    sharedPreferences.edit().putBoolean("update_enabled", checked).apply();
+                }
+            });
         settings.add(new SettingStruct("Invert long press and click functions", "App Settings", SettingStruct.TYPE_TOGGLE) {
             @Override
             public void onCheckChanged(boolean checked, Context ctx) {
@@ -182,7 +190,10 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     protected void onDestroy() {
         super.onDestroy();
         sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
-        unregisterReceiver(broadcastReceiver);
+        try {
+            unregisterReceiver(broadcastReceiver);
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
